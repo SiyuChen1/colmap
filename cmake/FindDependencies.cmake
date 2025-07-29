@@ -26,6 +26,14 @@ find_package(Boost ${COLMAP_FIND_TYPE} COMPONENTS
 
 find_package(Eigen3 ${COLMAP_FIND_TYPE})
 
+if (Eigen3_FOUND)
+  message(STATUS "Eigen3 include dir: ${Eigen3_INCLUDE_DIRS}")
+  message(STATUS "Eigen3 version: ${Eigen3_VERSION}")
+  message(STATUS "Eigen3 dir (via CMake config): ${Eigen3_DIR}")
+else()
+  message(WARNING "Eigen3 not found.")
+endif()
+
 find_package(FreeImage ${COLMAP_FIND_TYPE})
 
 find_package(Metis ${COLMAP_FIND_TYPE})

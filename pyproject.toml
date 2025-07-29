@@ -38,7 +38,8 @@ wheel.expand-macos-universal-tags = true
 cmake.source-dir = "python/"
 wheel.packages = ["python/pycolmap"]
 cmake.args = [
-    "-DCeres_DIR=/usr/local/lib/cmake/Ceres"
+    "-DCeres_DIR=/usr/local/lib/cmake/Ceres",
+    "-DEigen3_DIR=/usr/lib/cmake/eigen3/"
 ]
 
 [tool.cibuildwheel]
