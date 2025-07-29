@@ -37,6 +37,9 @@ classifiers = [
 wheel.expand-macos-universal-tags = true
 cmake.source-dir = "python/"
 wheel.packages = ["python/pycolmap"]
+cmake.args = [
+    "-DCeres_DIR=/usr/local/lib/cmake/Ceres"
+]
 
 [tool.cibuildwheel]
 build = "cp3{8,9,10,11,12,13}-{macosx,manylinux,win}*"
