@@ -11,9 +11,9 @@ compile_commands.json
 .vs
 .DS_Store
 .cache
-build*/
+*build*/
 install-debug/
-install-release/
+*install-release/
 data/
 benchmark/reconstruction/data/
 benchmark/reconstruction/runs/

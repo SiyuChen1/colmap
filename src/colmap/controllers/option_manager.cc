@@ -653,6 +653,15 @@ void OptionManager::AddMapperOptions() {
                               &mapper->triangulation.min_angle);
   AddAndRegisterDefaultOption("Mapper.tri_ignore_two_view_tracks",
                               &mapper->triangulation.ignore_two_view_tracks);
+  
+  // Pose prior added by Siyu Chen
+  AddAndRegisterDefaultOption("Mapper.use_prior_position",
+                            &mapper->use_prior_position);
+  AddAndRegisterDefaultOption("Mapper.use_robust_loss_on_prior_position",
+                              &mapper->use_robust_loss_on_prior_position);
+  AddAndRegisterDefaultOption("Mapper.prior_position_loss_scale",
+                              &mapper->prior_position_loss_scale);
+
 }
 
 void OptionManager::AddPatchMatchStereoOptions() {
