@@ -341,7 +341,14 @@ IncrementalPipeline::Status IncrementalPipeline::InitializeReconstruction(
 
   LOG(INFO) << "Global bundle adjustment";
   mapper.AdjustGlobalBundle(mapper_options, options_->GlobalBundleAdjustment());
-  reconstruction.Normalize();
+  // Keep metric scale if rigs exist
+  const bool fix_scale = reconstruction.NumRigs() > 0;
+  if (fix_scale) {
+    LOG(INFO) << "Normalize with fixed scale (rigs and/or pose priors present)";
+  } else {
+    LOG(INFO) << "Normalize with free scale (no rigs or pose priors)";
+  }
+  reconstruction.Normalize(/*fixed_scale=*/fix_scale);
   mapper.FilterPoints(mapper_options);
   mapper.FilterFrames(mapper_options);
 
