@@ -719,6 +719,14 @@ PosePrior Database::ReadPosePrior(const image_t image_id) const {
         sqlite3_column_int64(sql_stmt_read_pose_prior_, 2));
     prior.position_covariance =
         ReadStaticMatrixBlob<Eigen::Matrix3d>(sql_stmt_read_pose_prior_, rc, 3);
+    // Nullable in old DBs; guard against null.
+    if (sqlite3_column_type(sql_stmt_read_pose_prior_, 4) != SQLITE_NULL) {
+        prior.orientation_qvec = ReadStaticMatrixBlob<Eigen::Vector4d>(sql_stmt_read_pose_prior_, rc, 4);
+    }
+    if (sqlite3_column_type(sql_stmt_read_pose_prior_, 5) != SQLITE_NULL) {
+        prior.orientation_covariance = ReadStaticMatrixBlob<Eigen::Matrix3d>(
+          sql_stmt_read_pose_prior_, rc, 5);
+    }
   }
   return prior;
 }
@@ -1053,6 +1061,10 @@ void Database::WritePosePrior(const image_t image_id,
       static_cast<sqlite3_int64>(pose_prior.coordinate_system)));
   WriteStaticMatrixBlob(
       sql_stmt_write_pose_prior_, pose_prior.position_covariance, 4);
+  WriteStaticMatrixBlob(
+      sql_stmt_write_pose_prior_, pose_prior.orientation_qvec, 5);
+  WriteStaticMatrixBlob(
+      sql_stmt_write_pose_prior_, pose_prior.orientation_covariance, 6);
   SQLITE3_CALL(sqlite3_step(sql_stmt_write_pose_prior_));
 }
 
@@ -1710,7 +1722,7 @@ void Database::PrepareSQLStatements() {
   //////////////////////////////////////////////////////////////////////////////
   prepare_sql_stmt(
       "INSERT INTO pose_priors(image_id, position, coordinate_system, "
-      "position_covariance) VALUES(?, ?, ?, ?);",
+      "position_covariance, orientation_qvec, orientation_covariance) VALUES(?, ?, ?, ?, ?, ?);",
       &sql_stmt_write_pose_prior_);
   prepare_sql_stmt(
       "INSERT INTO keypoints(image_id, rows, cols, data) VALUES(?, ?, ?, ?);",
@@ -1861,6 +1873,8 @@ void Database::CreatePosePriorTable() const {
       "    position                   BLOB,"
       "    coordinate_system          INTEGER               NOT NULL,"
       "    position_covariance        BLOB,"
+      "    orientation_qvec           BLOB,"
+      "    orientation_covariance     BLOB,"
       "    FOREIGN KEY(image_id) REFERENCES images(image_id) ON DELETE "
       "CASCADE);";
 

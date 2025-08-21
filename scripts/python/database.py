@@ -67,6 +67,8 @@ CREATE_POSE_PRIORS_TABLE = """CREATE TABLE IF NOT EXISTS pose_priors (
     position BLOB,
     coordinate_system INTEGER NOT NULL,
     position_covariance BLOB,
+    orientation_qvec BLOB,
+    orientation_covariance BLOB,
     FOREIGN KEY(image_id) REFERENCES images(image_id) ON DELETE CASCADE)"""
 
 CREATE_TWO_VIEW_GEOMETRIES_TABLE = """
@@ -208,18 +210,27 @@ class COLMAPDatabase(sqlite3.Connection):
         return cursor.lastrowid
 
     def add_pose_prior(
-        self, image_id, position, coordinate_system=-1, position_covariance=None
+        self, image_id, position, coordinate_system=-1, position_covariance=None, orientation_qvec=None,
+        orientation_covariance=None,
     ):
         position = np.asarray(position, dtype=np.float64)
         if position_covariance is None:
             position_covariance = np.full((3, 3), np.nan, dtype=np.float64)
+        if orientation_qvec is None:
+            orientation_qvec = np.full((4,), np.nan, dtype=np.float64)
+        else:
+            orientation_qvec = np.asarray(orientation_qvec, dtype=np.float64)
+        if orientation_covariance is None:
+            orientation_covariance = np.full((3, 3), np.nan, dtype=np.float64)
         self.execute(
-            "INSERT INTO pose_priors VALUES (?, ?, ?, ?)",
+            "INSERT INTO pose_priors VALUES (?, ?, ?, ?, ?, ?)",
             (
                 image_id,
                 array_to_blob(position),
                 coordinate_system,
                 array_to_blob(position_covariance),
+                array_to_blob(orientation_qvec),
+                array_to_blob(orientation_covariance),
             ),
         )
 

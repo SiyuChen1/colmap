@@ -52,6 +52,14 @@ struct PosePrior {
       Eigen::Vector3d::Constant(std::numeric_limits<double>::quiet_NaN());
   Eigen::Matrix3d position_covariance =
       Eigen::Matrix3d::Constant(std::numeric_limits<double>::quiet_NaN());
+
+  // Optional orientation prior (w,x,y,z). NaNs mean "not provided".
+  Eigen::Vector4d orientation_qvec =
+      Eigen::Vector4d::Constant(std::numeric_limits<double>::quiet_NaN());
+  // Optional rotation covariance (so(3) tangent space, radians^2).
+  Eigen::Matrix3d orientation_covariance =
+      Eigen::Matrix3d::Constant(std::numeric_limits<double>::quiet_NaN());
+
   CoordinateSystem coordinate_system = CoordinateSystem::UNDEFINED;
 
   PosePrior() = default;
@@ -72,6 +80,11 @@ struct PosePrior {
     return position_covariance.allFinite();
   }
 
+  inline bool IsOrientationValid() const { return orientation_qvec.allFinite(); }
+  inline bool IsOrientationCovarianceValid() const {
+    return orientation_covariance.allFinite();
+  }
+
   inline bool operator==(const PosePrior& other) const;
   inline bool operator!=(const PosePrior& other) const;
 };
@@ -81,7 +94,9 @@ std::ostream& operator<<(std::ostream& stream, const PosePrior& prior);
 bool PosePrior::operator==(const PosePrior& other) const {
   return coordinate_system == other.coordinate_system &&
          position == other.position &&
-         position_covariance == other.position_covariance;
+         position_covariance == other.position_covariance &&
+         orientation_qvec == other.orientation_qvec &&
+         orientation_covariance == other.orientation_covariance;
 }
 
 bool PosePrior::operator!=(const PosePrior& other) const {

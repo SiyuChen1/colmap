@@ -1018,13 +1018,40 @@ class PosePriorBundleAdjuster : public BundleAdjuster {
     // cam_from_world.rotation is normalized in AddImageToProblem()
     double* cam_from_world_rotation = cam_from_world.rotation.coeffs().data();
 
-    problem->AddResidualBlock(
+    const bool has_rot = prior.IsOrientationValid() && prior.IsOrientationCovarianceValid();
+    // (A) Position-only prior:
+    if (!has_rot) {
+      LOG(INFO) << "Could not add rotation prior for image #" << image_id;
+
+      problem->AddResidualBlock(
         CovarianceWeightedCostFunctor<AbsolutePosePositionPriorCostFunctor>::
             Create(prior.position_covariance,
                    normalized_from_metric_ * prior.position),
         prior_loss_function_.get(),
         cam_from_world_rotation,
         cam_from_world_translation);
+    }else{
+      LOG(INFO) << "Add rotation prior for image #" << image_id;
+      Eigen::Matrix<double, 6, 6> cov6 = Eigen::Matrix<double, 6, 6>::Zero();
+      cov6.block<3,3>(0,0) = prior.orientation_covariance;
+      cov6.block<3,3>(3,3) = prior.position_covariance;
+      // Prior pose in cam_from_world convention.
+      const Eigen::Quaterniond q_prior(prior.orientation_qvec(0),
+                                       prior.orientation_qvec(1),
+                                       prior.orientation_qvec(2),
+                                       prior.orientation_qvec(3));
+      const Rigid3d cam_from_world_prior(q_prior,
+                                         normalized_from_metric_ * prior.position);
+
+      problem->AddResidualBlock(
+          CovarianceWeightedCostFunctor<AbsolutePosePriorCostFunctor>::Create(
+              cov6, cam_from_world_prior),
+          // Reuse position robust loss scale for the combined block (minimal change).
+          prior_loss_function_.get(),
+          cam_from_world_rotation,
+          cam_from_world_translation);
+    }
+
   }
 
   bool AlignReconstruction() {
