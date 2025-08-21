@@ -72,14 +72,14 @@ void VerifyMatches(const std::string& database_path,
 
 void BindMatchFeatures(py::module& m) {
   auto PyExhaustivePairingOptions =
-      py::class_<ExhaustivePairingOptions>(m, "ExhaustivePairingOptions")
+      py::classh<ExhaustivePairingOptions>(m, "ExhaustivePairingOptions")
           .def(py::init<>())
           .def_readwrite("block_size", &ExhaustivePairingOptions::block_size)
           .def("check", &ExhaustivePairingOptions::Check);
   MakeDataclass(PyExhaustivePairingOptions);
 
   auto PySpatialPairingOptions =
-      py::class_<SpatialPairingOptions>(m, "SpatialPairingOptions")
+      py::classh<SpatialPairingOptions>(m, "SpatialPairingOptions")
           .def(py::init<>())
           .def_readwrite(
               "ignore_z",
@@ -103,7 +103,7 @@ void BindMatchFeatures(py::module& m) {
   MakeDataclass(PySpatialPairingOptions);
 
   auto PyVocabTreePairingOptions =
-      py::class_<VocabTreePairingOptions>(m, "VocabTreePairingOptions")
+      py::classh<VocabTreePairingOptions>(m, "VocabTreePairingOptions")
           .def(py::init<>())
           .def_readwrite("num_images",
                          &VocabTreePairingOptions::num_images,
@@ -137,7 +137,7 @@ void BindMatchFeatures(py::module& m) {
   MakeDataclass(PyVocabTreePairingOptions);
 
   auto PySequentialPairingOptions =
-      py::class_<SequentialPairingOptions>(m, "SequentialPairingOptions")
+      py::classh<SequentialPairingOptions>(m, "SequentialPairingOptions")
           .def(py::init<>())
           .def_readwrite("overlap",
                          &SequentialPairingOptions::overlap,
@@ -198,7 +198,7 @@ void BindMatchFeatures(py::module& m) {
   MakeDataclass(PySequentialPairingOptions);
 
   auto PyImportedPairingOptions =
-      py::class_<ImportedPairingOptions>(m, "ImportedPairingOptions")
+      py::classh<ImportedPairingOptions>(m, "ImportedPairingOptions")
           .def(py::init<>())
           .def_readwrite("block_size",
                          &ImportedPairingOptions::block_size,
@@ -281,36 +281,36 @@ void BindMatchFeatures(py::module& m) {
             "matching_options", FeatureMatchingOptions(), "FeatureMatchingOptions()"),
         "Run geometric verification of the matches");
 
-  py::class_<PairGenerator>(m, "PairGenerator")
+  py::classh<PairGenerator>(m, "PairGenerator")
       .def("reset", &PairGenerator::Reset)
       .def("has_finished", &PairGenerator::HasFinished)
       .def("next", &PairGenerator::Next)
       .def("all_pairs", &PairGenerator::AllPairs);
-  py::class_<ExhaustivePairGenerator, PairGenerator>(m,
+  py::classh<ExhaustivePairGenerator, PairGenerator>(m,
                                                      "ExhaustivePairGenerator")
       .def(py::init<const ExhaustivePairingOptions&,
                     const std::shared_ptr<Database>&>(),
            "options"_a,
            "database"_a);
-  py::class_<VocabTreePairGenerator, PairGenerator>(m, "VocabTreePairGenerator")
+  py::classh<VocabTreePairGenerator, PairGenerator>(m, "VocabTreePairGenerator")
       .def(py::init<const VocabTreePairingOptions&,
                     const std::shared_ptr<Database>&,
                     const std::vector<image_t>&>(),
            "options"_a,
            "database"_a,
            "query_image_ids"_a = std::vector<image_t>());
-  py::class_<SequentialPairGenerator, PairGenerator>(m,
+  py::classh<SequentialPairGenerator, PairGenerator>(m,
                                                      "SequentialPairGenerator")
       .def(py::init<const SequentialPairingOptions&,
                     const std::shared_ptr<Database>&>(),
            "options"_a,
            "database"_a);
-  py::class_<SpatialPairGenerator, PairGenerator>(m, "SpatialPairGenerator")
+  py::classh<SpatialPairGenerator, PairGenerator>(m, "SpatialPairGenerator")
       .def(py::init<const SpatialPairingOptions&,
                     const std::shared_ptr<Database>&>(),
            "options"_a,
            "database"_a);
-  py::class_<ImportedPairGenerator, PairGenerator>(m, "ImportedPairGenerator")
+  py::classh<ImportedPairGenerator, PairGenerator>(m, "ImportedPairGenerator")
       .def(py::init<const ImportedPairingOptions&,
                     const std::shared_ptr<Database>&>(),
            "options"_a,

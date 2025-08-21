@@ -30,7 +30,7 @@ class DatabaseTransactionWrapper {
 }  // namespace
 
 void BindDatabase(py::module& m) {
-  py::class_<Database, std::shared_ptr<Database>> PyDatabase(m, "Database");
+  py::classh<Database> PyDatabase(m, "Database");
   PyDatabase.def(py::init<>())
       .def(py::init<const std::string&>(), "path"_a)
       .def("open", &Database::Open, "path"_a)
@@ -68,16 +68,6 @@ void BindDatabase(py::module& m) {
       .def("num_inlier_matches", &Database::NumInlierMatches)
       .def("num_matched_image_pairs", &Database::NumMatchedImagePairs)
       .def("num_verified_image_pairs", &Database::NumVerifiedImagePairs)
-      .def_static("image_pair_to_pair_id",
-                  &Database::ImagePairToPairId,
-                  "image_id1"_a,
-                  "image_id2"_a)
-      .def_static(
-          "pair_id_to_image_pair", &Database::PairIdToImagePair, "pair_id"_a)
-      .def_static("swap_image_pair",
-                  &Database::SwapImagePair,
-                  "image_id1"_a,
-                  "image_id2"_a)
       .def("read_rig", &Database::ReadRig, "rig_id"_a)
       .def("read_rig_with_sensor", &Database::ReadRigWithSensor, "sensor_id"_a)
       .def("read_all_rigs", &Database::ReadAllRigs)
@@ -204,7 +194,7 @@ void BindDatabase(py::module& m) {
                   "database2"_a,
                   "merged_database"_a);
 
-  py::class_<DatabaseTransactionWrapper>(m, "DatabaseTransaction")
+  py::classh<DatabaseTransactionWrapper>(m, "DatabaseTransaction")
       .def(py::init<Database*>(), "database"_a)
       .def("__enter__", &DatabaseTransactionWrapper::Enter)
       .def("__exit__", &DatabaseTransactionWrapper::Exit);
