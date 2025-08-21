@@ -675,6 +675,8 @@ void OptionManager::AddMapperOptions() {
   // Pose prior added by Siyu Chen
   AddAndRegisterDefaultOption("Mapper.use_prior_position",
                             &mapper->use_prior_position);
+  AddAndRegisterDefaultOption("Mapper.use_prior_rotation",
+                            &mapper->use_prior_rotation);
   AddAndRegisterDefaultOption("Mapper.use_robust_loss_on_prior_position",
                               &mapper->use_robust_loss_on_prior_position);
   AddAndRegisterDefaultOption("Mapper.prior_position_loss_scale",

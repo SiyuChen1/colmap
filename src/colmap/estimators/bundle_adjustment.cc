@@ -1036,12 +1036,14 @@ class PosePriorBundleAdjuster : public BundleAdjuster {
       cov6.block<3,3>(0,0) = prior.orientation_covariance;
       cov6.block<3,3>(3,3) = prior.position_covariance;
       // Prior pose in cam_from_world convention.
-      const Eigen::Quaterniond q_prior(prior.orientation_qvec(0),
+      const Eigen::Quaterniond q_wc(prior.orientation_qvec(0),
                                        prior.orientation_qvec(1),
                                        prior.orientation_qvec(2),
                                        prior.orientation_qvec(3));
-      const Rigid3d cam_from_world_prior(q_prior,
-                                         normalized_from_metric_ * prior.position);
+      const Eigen::Quaterniond q_cw = q_wc.conjugate();  // convert to cam_from_world
+      const Eigen::Vector3d Cw = normalized_from_metric_ * prior.position;
+      const Eigen::Vector3d t_cw = -(q_cw * Cw);
+      const Rigid3d cam_from_world_prior(q_cw, t_cw);
 
       problem->AddResidualBlock(
           CovarianceWeightedCostFunctor<AbsolutePosePriorCostFunctor>::Create(

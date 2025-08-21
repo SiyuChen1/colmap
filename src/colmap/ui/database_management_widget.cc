@@ -718,7 +718,7 @@ PosePriorsTab::PosePriorsTab(QWidget* parent, Database* database)
   grid->addWidget(info_label_, 0, 0);
 
   table_widget_ = new QTableWidget(this);
-  table_widget_->setColumnCount(11);
+  table_widget_->setColumnCount(21);
 
   QStringList table_header;
   table_header << "image_id"
@@ -731,7 +731,10 @@ PosePriorsTab::PosePriorsTab(QWidget* parent, Database* database)
                << "cov_zz"
                << "cov_xy"
                << "cov_xz"
-               << "cov_yz";
+               << "cov_yz"
+               << "qw" << "qx" << "qy" << "qz"
+               << "rcov_xx" << "rcov_yy" << "rcov_zz"
+               << "rcov_xy" << "rcov_xz" << "rcov_yz";
   table_widget_->setHorizontalHeaderLabels(table_header);
 
   table_widget_->setShowGrid(true);
@@ -760,6 +763,8 @@ void PosePriorsTab::Reload() {
   info += QString("Images: ") + QString::number(database_->NumImages());
   info += QString('\n');
   info += QString("PosePriors: ") + QString::number(database_->NumPosePriors());
+  info += QString('\n');
+  info += QString("RotationPriors: ") + QString::number(database_->NumRotationPriors());
   info_label_->setText(info);
 
   // Make sure, itemChanged is not invoked, while setting up the table
@@ -813,6 +818,46 @@ void PosePriorsTab::Reload() {
         row_idx,
         10,
         new QTableWidgetItem(QString::number(prior.position_covariance(1, 2))));
+    table_widget_->setItem(
+        row_index, 
+        11, 
+        new QTableWidgetItem(QString::number(prior.orientation_qvec(0))));
+    table_widget_->setItem(
+        row, 
+        12, 
+        new QTableWidgetItem(QString::number(prior.orientation_qvec(1))));
+    table_widget_->setItem(
+        row, 
+        13, 
+        new QTableWidgetItem(QString::number(prior.orientation_qvec(2))));
+    table_widget_->setItem(
+        row,
+        14, 
+        new QTableWidgetItem(QString::number(prior.orientation_qvec(3))));
+    table_widget_->setItem(
+        row,
+        15,
+        new QTableWidgetItem(QString::number(prior.orientation_covariance(0,0))));
+    table_widget_->setItem(
+        row,
+        16, 
+        new QTableWidgetItem(QString::number(prior.orientation_covariance(1,1))));
+    table_widget_->setItem(
+        row, 
+        17, 
+        new QTableWidgetItem(QString::number(prior.orientation_covariance(2,2))));
+    table_widget_->setItem(
+        row,
+        18,
+        new QTableWidgetItem(QString::number(prior.orientation_covariance(0,1))));
+    table_widget_->setItem(
+        row,
+        19,
+        new QTableWidgetItem(QString::number(prior.orientation_covariance(0,2))));
+    table_widget_->setItem(
+        row,
+        20, 
+        new QTableWidgetItem(QString::number(prior.orientation_covariance(1,2))));
     ++row_idx;
   }
   table_widget_->resizeColumnsToContents();

@@ -520,6 +520,12 @@ size_t Database::NumImages() const { return CountRows("images"); }
 
 size_t Database::NumPosePriors() const { return CountRows("pose_priors"); }
 
+size_t Database::NumRotationPriors() const {
+  Sqlite3StmtContext context(sql_stmt_num_rotation_priors_);
+  SQLITE3_CALL(sqlite3_step(sql_stmt_num_rotation_priors_));
+  return static_cast<size_t>(sqlite3_column_int64(sql_stmt_num_rotation_priors_, 0));
++}
+
 size_t Database::NumKeypoints() const { return SumColumn("rows", "keypoints"); }
 
 size_t Database::MaxNumKeypoints() const {
@@ -1578,6 +1584,10 @@ void Database::PrepareSQLStatements() {
                    &sql_stmt_num_keypoints_);
   prepare_sql_stmt("SELECT rows FROM descriptors WHERE image_id = ?;",
                    &sql_stmt_num_descriptors_);
+  prepare_sql_stmt("SELECT COUNT(*) FROM pose_priors "
+                  "WHERE orientation_qvec IS NOT NULL "
+                  "AND orientation_covariance IS NOT NULL;",
+                  &sql_stmt_num_rotation_priors_);
 
   //////////////////////////////////////////////////////////////////////////////
   // exists_*

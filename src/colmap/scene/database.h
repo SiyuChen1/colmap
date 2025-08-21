@@ -106,6 +106,9 @@ class Database {
   //  Number of rows in `pose_priors` table.
   size_t NumPosePriors() const;
 
+  // Number of valid rotation priors in `pose_priors` table.
+  size_t NumRotationPriors() const;
+
   // Sum of `rows` column in `keypoints` table, i.e. number of total keypoints.
   size_t NumKeypoints() const;
 
@@ -343,6 +346,7 @@ class Database {
   // num_*
   sqlite3_stmt* sql_stmt_num_keypoints_ = nullptr;
   sqlite3_stmt* sql_stmt_num_descriptors_ = nullptr;
+  sqlite3_stmt* sql_stmt_num_rotation_priors_ = nullptr;
 
   // exists_*
   sqlite3_stmt* sql_stmt_exists_rig_ = nullptr;
