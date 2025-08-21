@@ -19,6 +19,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 find_package(colmap REQUIRED)
+message(STATUS "COLMAP found at: ${colmap_DIR}")
 
 if (CMAKE_VERSION VERSION_LESS 3.18)
     set(DEV_MODULE Development)

@@ -39,7 +39,8 @@ cmake.source-dir = "python/"
 wheel.packages = ["python/pycolmap"]
 cmake.args = [
     "-DCeres_DIR=/usr/local/lib/cmake/Ceres",
-    "-DEigen3_DIR=/usr/lib/cmake/eigen3/"
+    "-DEigen3_DIR=/usr/lib/cmake/eigen3/",
+    "-Dcolmap_DIR=/home/siyu/git_ws/colmap/myinstall-rotation/share/colmap"
 ]
 
 [tool.cibuildwheel]
