@@ -43,8 +43,8 @@ void BindPosePrior(py::module& m) {
       .def_readwrite("orientation_covariance", &PosePrior::orientation_covariance)
       .def_readwrite("coordinate_system", &PosePrior::coordinate_system)
       .def("is_valid", &PosePrior::IsValid)
-      .def("is_covariance_valid", &PosePrior::IsCovarianceValid);
-      .def("is_orientation_valid", &PosePrior::IsOrientationValid);
+      .def("is_covariance_valid", &PosePrior::IsCovarianceValid)
+      .def("is_orientation_valid", &PosePrior::IsOrientationValid)
       .def("is_orientation_covariance_valid", &PosePrior::IsOrientationCovarianceValid);
   MakeDataclass(PyPosePrior);
 }

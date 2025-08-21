@@ -132,6 +132,9 @@ class IncrementalMapper {
     // (chi2 for 3DOF at 95% = 7.815)
     double prior_position_loss_scale = 7.815;
 
+    // Whether to use prior camera rotations
+    bool use_prior_rotation = false;
+
     // Number of threads.
     int num_threads = -1;
 

@@ -955,7 +955,7 @@ class PosePriorBundleAdjuster : public BundleAdjuster {
         const auto pose_prior_it = pose_priors_.find(image_id);
         if (pose_prior_it != pose_priors_.end()) {
           AddPosePriorToProblem(
-              image_id, pose_prior_it->second, reconstruction);
+              image_id, pose_prior_it->second, reconstruction, prior_options_.use_prior_rotation);
         }
       }
     }
@@ -989,7 +989,9 @@ class PosePriorBundleAdjuster : public BundleAdjuster {
 
   void AddPosePriorToProblem(image_t image_id,
                              const PosePrior& prior,
-                             Reconstruction& reconstruction) {
+                             Reconstruction& reconstruction,
+                             bool use_prior_rotation = false
+                            ) {
     if (!prior.IsValid() || !prior.IsCovarianceValid()) {
       LOG(ERROR) << "Could not add prior for image #" << image_id;
       return;
@@ -1020,18 +1022,9 @@ class PosePriorBundleAdjuster : public BundleAdjuster {
 
     const bool has_rot = prior.IsOrientationValid() && prior.IsOrientationCovarianceValid();
     // (A) Position-only prior:
-    if (!has_rot) {
-      LOG(INFO) << "Could not add rotation prior for image #" << image_id;
-
-      problem->AddResidualBlock(
-        CovarianceWeightedCostFunctor<AbsolutePosePositionPriorCostFunctor>::
-            Create(prior.position_covariance,
-                   normalized_from_metric_ * prior.position),
-        prior_loss_function_.get(),
-        cam_from_world_rotation,
-        cam_from_world_translation);
-    }else{
+    if (has_rot && use_prior_rotation) {
       LOG(INFO) << "Add rotation prior for image #" << image_id;
+
       Eigen::Matrix<double, 6, 6> cov6 = Eigen::Matrix<double, 6, 6>::Zero();
       cov6.block<3,3>(0,0) = prior.orientation_covariance;
       cov6.block<3,3>(3,3) = prior.position_covariance;
@@ -1052,6 +1045,20 @@ class PosePriorBundleAdjuster : public BundleAdjuster {
           prior_loss_function_.get(),
           cam_from_world_rotation,
           cam_from_world_translation);
+    }else{
+      if(use_prior_rotation){
+        LOG(INFO) << "Invalid rotation prior, could not add rotation prior for image #" << image_id;
+      }else{
+        LOG(INFO) << "Disable rotation prior, could not add rotation prior for image #" << image_id;
+      }
+
+      problem->AddResidualBlock(
+        CovarianceWeightedCostFunctor<AbsolutePosePositionPriorCostFunctor>::
+            Create(prior.position_covariance,
+                   normalized_from_metric_ * prior.position),
+        prior_loss_function_.get(),
+        cam_from_world_rotation,
+        cam_from_world_translation);
     }
 
   }

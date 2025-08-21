@@ -524,7 +524,7 @@ size_t Database::NumRotationPriors() const {
   Sqlite3StmtContext context(sql_stmt_num_rotation_priors_);
   SQLITE3_CALL(sqlite3_step(sql_stmt_num_rotation_priors_));
   return static_cast<size_t>(sqlite3_column_int64(sql_stmt_num_rotation_priors_, 0));
-+}
+}
 
 size_t Database::NumKeypoints() const { return SumColumn("rows", "keypoints"); }
 

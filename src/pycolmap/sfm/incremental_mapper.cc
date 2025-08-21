@@ -159,6 +159,9 @@ void BindIncrementalPipeline(py::module& m) {
       .def_readwrite("use_prior_position",
                      &Opts::use_prior_position,
                      "Whether to use priors on the camera positions.")
+      .def_readwrite("use_prior_rotation",
+                     &Opts::use_prior_rotation,
+                     "Whether to use priors on the camera rotations.")
       .def_readwrite("use_robust_loss_on_prior_position",
                      &Opts::use_robust_loss_on_prior_position,
                      "Whether to use a robust loss on prior camera positions.")

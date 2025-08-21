@@ -819,43 +819,43 @@ void PosePriorsTab::Reload() {
         10,
         new QTableWidgetItem(QString::number(prior.position_covariance(1, 2))));
     table_widget_->setItem(
-        row_index, 
+        row_idx, 
         11, 
         new QTableWidgetItem(QString::number(prior.orientation_qvec(0))));
     table_widget_->setItem(
-        row, 
+        row_idx, 
         12, 
         new QTableWidgetItem(QString::number(prior.orientation_qvec(1))));
     table_widget_->setItem(
-        row, 
+        row_idx, 
         13, 
         new QTableWidgetItem(QString::number(prior.orientation_qvec(2))));
     table_widget_->setItem(
-        row,
+        row_idx,
         14, 
         new QTableWidgetItem(QString::number(prior.orientation_qvec(3))));
     table_widget_->setItem(
-        row,
+        row_idx,
         15,
         new QTableWidgetItem(QString::number(prior.orientation_covariance(0,0))));
     table_widget_->setItem(
-        row,
+        row_idx,
         16, 
         new QTableWidgetItem(QString::number(prior.orientation_covariance(1,1))));
     table_widget_->setItem(
-        row, 
+        row_idx, 
         17, 
         new QTableWidgetItem(QString::number(prior.orientation_covariance(2,2))));
     table_widget_->setItem(
-        row,
+        row_idx,
         18,
         new QTableWidgetItem(QString::number(prior.orientation_covariance(0,1))));
     table_widget_->setItem(
-        row,
+        row_idx,
         19,
         new QTableWidgetItem(QString::number(prior.orientation_covariance(0,2))));
     table_widget_->setItem(
-        row,
+        row_idx,
         20, 
         new QTableWidgetItem(QString::number(prior.orientation_covariance(1,2))));
     ++row_idx;

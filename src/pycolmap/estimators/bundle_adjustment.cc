@@ -200,6 +200,9 @@ void BindBundleAdjuster(py::module& m) {
                          &PosePriorBAOpts::prior_position_loss_scale,
                          "Threshold on the residual for the robust loss (chi2 "
                          "for 3DOF at 95% = 7.815).")
+          .def_readwrite("use_prior_rotation",
+                         &PosePriorBAOpts::use_prior_rotation,
+                         "Whether to use prior camera rotations.")
           .def_readwrite("alignment_ransac",
                          &PosePriorBAOpts::alignment_ransac_options,
                          "RANSAC options for Sim3 alignment.");

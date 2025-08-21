@@ -205,6 +205,9 @@ struct PosePriorBundleAdjustmentOptions {
 
   // Sim3 alignment options.
   RANSACOptions alignment_ransac_options;
+
+  // Siyu Chen: enable 6-DoF prior when rot prior exists
+  bool use_prior_rotation = false;   
 };
 
 class BundleAdjuster {
