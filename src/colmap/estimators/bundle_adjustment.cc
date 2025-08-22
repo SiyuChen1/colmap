@@ -1021,7 +1021,6 @@ class PosePriorBundleAdjuster : public BundleAdjuster {
     double* cam_from_world_rotation = cam_from_world.rotation.coeffs().data();
 
     const bool has_rot = prior.IsOrientationValid() && prior.IsOrientationCovarianceValid();
-    // (A) Position-only prior:
     if (has_rot && use_prior_rotation) {
       LOG(INFO) << "Add rotation prior for image #" << image_id;
 
