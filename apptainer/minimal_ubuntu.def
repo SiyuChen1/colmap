@@ -1,0 +1,8 @@
+Bootstrap: docker
+From: ubuntu:{{ VERSION }}
+
+%arguments
+    VERSION=24.04
+
+%runscript
+    echo "OK VERSION={{ VERSION }}"

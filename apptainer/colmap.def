@@ -1,0 +1,69 @@
+# ---------- builder stage ----------
+Bootstrap: docker
+From: nvidia/cuda:{{ NVIDIA_CUDA_VERSION }}-devel-ubuntu{{ UBUNTU_VERSION }}
+Stage: builder
+
+%arguments
+    UBUNTU_VERSION=24.04
+    NVIDIA_CUDA_VERSION=12.9.1
+    COLMAP_GIT_REPOSITORY=https://github.com/SiyuChen1/colmap.git
+    COLMAP_GIT_COMMIT=new_feature/rig_verification_timer
+    CUDA_ARCHITECTURES=all-major
+
+%environment
+    export QT_XCB_GL_INTEGRATION=xcb_egl
+
+%post
+    set -eux
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y \
+        git cmake ninja-build build-essential \
+        libboost-program-options-dev libboost-graph-dev libboost-system-dev \
+        libeigen3-dev libfreeimage-dev libmetis-dev libgoogle-glog-dev \
+        libgtest-dev libgmock-dev libsqlite3-dev libglew-dev \
+        qtbase5-dev libqt5opengl5-dev libcgal-dev libceres-dev \
+        libcurl4-openssl-dev libmkl-full-dev
+    rm -rf /var/lib/apt/lists/*
+
+    # Build and install COLMAP into a staging prefix
+    git clone {{ COLMAP_GIT_REPOSITORY }} /opt/colmap
+    cd /opt/colmap
+    # robust checkout whether it's a branch or a commit-ish
+    git fetch origin "{{ COLMAP_GIT_COMMIT }}"
+    git checkout -B colmap-build-branch FETCH_HEAD || git checkout "{{ COLMAP_GIT_COMMIT }}"
+    mkdir -p build && cd build
+    cmake .. -GNinja \
+        -DCMAKE_CUDA_ARCHITECTURES={{ CUDA_ARCHITECTURES }} \
+        -DCMAKE_INSTALL_PREFIX=/colmap-install \
+        -DBLA_VENDOR=Intel10_64lp
+    ninja install
+
+# ---------- runtime stage ----------
+Bootstrap: docker
+From: nvidia/cuda:{{ NVIDIA_CUDA_VERSION }}-runtime-ubuntu{{ UBUNTU_VERSION }}
+Stage: final
+
+%post
+    set -eux
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends --no-install-suggests \
+        libboost-program-options1.83.0 \
+        libc6 libomp5 libopengl0 libmetis5 libceres4t64 libfreeimage3 \
+        libgcc-s1 libgl1 libglew2.2 libgoogle-glog0v6t64 \
+        libqt5core5a libqt5gui5 libqt5widgets5 \
+        libcurl4 \
+        libmkl-locale libmkl-intel-lp64 libmkl-intel-thread libmkl-core
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%files from builder
+    /colmap-install/ /usr/local/
+
+%environment
+    export PATH=/usr/local/bin:$PATH
+    export QT_XCB_GL_INTEGRATION=xcb_egl
+
+%runscript
+    exec colmap "$@"
