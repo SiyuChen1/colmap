@@ -131,93 +131,184 @@ class FeatureMatcherThread : public Thread {
   }
 
   void RunRigVerification() {
+    // 1) Rigs
     std::unordered_map<rig_t, Rig> rigs;
     for (auto& rig : database_->ReadAllRigs()) {
       rigs[rig.RigId()] = std::move(rig);
     }
+    LOG(INFO) << "[RigVerify] Loaded " << rigs.size() << " rigs";
 
+    // 2) Image -> Frame mapping
     std::unordered_map<image_t, frame_t> image_to_frame_ids;
+    size_t num_frames = 0;
     for (const auto& frame : database_->ReadAllFrames()) {
+      ++num_frames;
       for (const data_t& data_id : frame.ImageIds()) {
         image_to_frame_ids[data_id.id] = frame.FrameId();
       }
     }
+    LOG(INFO) << "[RigVerify] Indexed " << image_to_frame_ids.size()
+              << " images across " << num_frames << " frames";
 
+    // 3) Aggregate image-pair matches to frame-pair counts
     std::map<std::pair<frame_t, frame_t>, int> frame_pair_to_num_matches;
-    for (const auto& [image_pair_id, num_matches] :
-         database_->ReadNumMatches()) {
-      if (num_matches == 0) {
+    size_t num_image_pairs_read = 0, num_image_pairs_used = 0;
+    for (const auto& [image_pair_id, num_matches] : database_->ReadNumMatches()) {
+      ++num_image_pairs_read;
+      if (num_matches == 0) continue;
+
+      const auto [image_id1, image_id2] = PairIdToImagePair(image_pair_id);
+      const auto it1 = image_to_frame_ids.find(image_id1);
+      const auto it2 = image_to_frame_ids.find(image_id2);
+      if (it1 == image_to_frame_ids.end() || it2 == image_to_frame_ids.end()) {
+        VLOG(2) << "[RigVerify] Skip image-pair (" << image_id1 << "," << image_id2
+                << ") because at least one image has no frame mapping";
         continue;
       }
-      const auto [image_id1, image_id2] = PairIdToImagePair(image_pair_id);
-      frame_t frame_id1 = image_to_frame_ids.at(image_id1);
-      frame_t frame_id2 = image_to_frame_ids.at(image_id2);
-      if (frame_id1 > frame_id2) {
-        std::swap(frame_id1, frame_id2);
-      }
-      frame_pair_to_num_matches[std::make_pair(frame_id1, frame_id2)] +=
-          num_matches;
+      frame_t frame_id1 = it1->second;
+      frame_t frame_id2 = it2->second;
+      if (frame_id1 > frame_id2) std::swap(frame_id1, frame_id2);
+
+      frame_pair_to_num_matches[std::make_pair(frame_id1, frame_id2)] += num_matches;
+      ++num_image_pairs_used;
     }
 
+    LOG(INFO) << "[RigVerify] Aggregated " << num_image_pairs_used
+              << " image-pairs (read " << num_image_pairs_read
+              << ") into " << frame_pair_to_num_matches.size() << " frame-pairs "
+              << "(min_inliers=" << geometry_options_.min_num_inliers << ")";
+
+    // 4) Schedule tasks for qualifying frame-pairs
     ThreadPool thread_pool(matching_options_.num_threads);
+
+    // Total #tasks (frame-pairs that pass the threshold)
+    const size_t total_pairs = std::count_if(
+        frame_pair_to_num_matches.begin(), frame_pair_to_num_matches.end(),
+        [this](const auto& kv) { return kv.second >= geometry_options_.min_num_inliers; });
+
+    std::atomic<size_t> started{0}, finished{0};
+    size_t num_pairs_enqueued = 0, num_pairs_below_thresh = 0;
+
     for (const auto& [frame_pair, num_matches] : frame_pair_to_num_matches) {
       if (num_matches < geometry_options_.min_num_inliers) {
+        ++num_pairs_below_thresh;
         continue;
       }
+
+      const frame_t frame_id1 = frame_pair.first;
+      const frame_t frame_id2 = frame_pair.second;
+      VLOG(1) << "[RigVerify] Enqueue frame-pair (" << frame_id1 << "," << frame_id2
+              << ") with aggregated matches=" << num_matches;
+
       thread_pool.AddTask([this,
-                           &rigs,
-                           frame_id1 = frame_pair.first,
-                           frame_id2 = frame_pair.second]() {
-        const Frame& frame1 = cache_->GetFrame(frame_id1);
-        const Frame& frame2 = cache_->GetFrame(frame_id2);
-        const Rig& rig1 = rigs.at(frame1.RigId());
-        const Rig& rig2 = rigs.at(frame2.RigId());
-        if (rig1.NumSensors() == 1 && rig2.NumSensors() == 1) {
-          return;
-        }
+                          &rigs,
+                          frame_id1,
+                          frame_id2,
+                          &started,
+                          &finished,
+                          total_pairs]() {
+        // Same pattern as pairing.cc: print a "[k/N]" line, do work, then " in X.XXXs".
+        Timer timer;
+        timer.Start();
+        const size_t k = started.fetch_add(1, std::memory_order_relaxed) + 1;
+        LOG(INFO) << StringPrintf("Verifying frame-pair [%zu/%zu]", k, total_pairs);
 
-        std::unordered_map<image_t, Image> images;
-        images.reserve(frame1.NumDataIds() + frame2.NumDataIds());
-        std::unordered_map<camera_t, Camera> cameras;
-        cameras.reserve(images.size());
-        auto add_images_and_cameras =
-            [this, &images, &cameras](const Frame& frame) {
-              for (const data_t& data_id : frame.ImageIds()) {
-                Image& image = images[data_id.id];
-                image = cache_->GetImage(data_id.id);
-                image.SetPoints2D(FeatureKeypointsToPointsVector(
-                    *cache_->GetKeypoints(data_id.id)));
-                cameras[image.CameraId()] = cache_->GetCamera(image.CameraId());
-              }
-            };
-        add_images_and_cameras(frame1);
-        add_images_and_cameras(frame2);
+        try {
+          const Frame& frame1 = cache_->GetFrame(frame_id1);
+          const Frame& frame2 = cache_->GetFrame(frame_id2);
+          const Rig& rig1 = rigs.at(frame1.RigId());
+          const Rig& rig2 = rigs.at(frame2.RigId());
 
-        std::vector<std::pair<std::pair<image_t, image_t>, FeatureMatches>>
-            matches;
-        matches.reserve(frame1.NumDataIds() * frame2.NumDataIds());
-        for (const data_t& image_id1 : frame1.ImageIds()) {
-          for (const data_t& image_id2 : frame2.ImageIds()) {
-            if (!cache_->ExistsMatches(image_id1.id, image_id2.id)) {
-              continue;
-            }
-            matches.emplace_back(
-                std::make_pair(image_id1.id, image_id2.id),
-                cache_->GetMatches(image_id1.id, image_id2.id));
+          if (rig1.NumSensors() == 1 && rig2.NumSensors() == 1) {
+            VLOG(1) << "[RigVerify] Skip frame-pair (" << frame_id1 << "," << frame_id2
+                    << ") because both rigs are single-sensor";
+            const size_t f = finished.fetch_add(1, std::memory_order_relaxed) + 1;
+            LOG(INFO) << StringPrintf(" in %.3fs (finished %zu/%zu, skipped)",
+                                      timer.ElapsedSeconds(), f, total_pairs);
+            return;
           }
-        }
 
-        for (const auto& [image_pair, two_view_geometry] :
-             EstimateRigTwoViewGeometries(
-                 rig1, rig2, images, cameras, matches, geometry_options_)) {
-          const auto& [image_id1, image_id2] = image_pair;
-          cache_->DeleteInlierMatches(image_id1, image_id2);
-          cache_->WriteTwoViewGeometry(image_id1, image_id2, two_view_geometry);
+          std::unordered_map<image_t, Image> images;
+          images.reserve(frame1.NumDataIds() + frame2.NumDataIds());
+          std::unordered_map<camera_t, Camera> cameras;
+          cameras.reserve(images.size());
+
+          auto add_images_and_cameras =
+              [this, &images, &cameras](const Frame& frame) {
+                for (const data_t& data_id : frame.ImageIds()) {
+                  Image& image = images[data_id.id];
+                  image = cache_->GetImage(data_id.id);
+                  image.SetPoints2D(FeatureKeypointsToPointsVector(
+                      *cache_->GetKeypoints(data_id.id)));
+                  cameras[image.CameraId()] = cache_->GetCamera(image.CameraId());
+                }
+              };
+          add_images_and_cameras(frame1);
+          add_images_and_cameras(frame2);
+
+          VLOG(2) << "[RigVerify] Frame-pair (" << frame_id1 << "," << frame_id2
+                  << ") loaded " << images.size() << " images and "
+                  << cameras.size() << " cameras. "
+                  << "Rig sensors: r1=" << rig1.NumSensors()
+                  << ", r2=" << rig2.NumSensors();
+
+          std::vector<std::pair<std::pair<image_t, image_t>, FeatureMatches>> matches;
+          matches.reserve(frame1.NumDataIds() * frame2.NumDataIds());
+          for (const data_t& image_id1 : frame1.ImageIds()) {
+            for (const data_t& image_id2 : frame2.ImageIds()) {
+              if (!cache_->ExistsMatches(image_id1.id, image_id2.id)) continue;
+              matches.emplace_back(
+                  std::make_pair(image_id1.id, image_id2.id),
+                  cache_->GetMatches(image_id1.id, image_id2.id));
+            }
+          }
+          VLOG(2) << "[RigVerify] Frame-pair (" << frame_id1 << "," << frame_id2
+                  << ") has " << matches.size() << " image-pairs with matches";
+
+          size_t num_geoms = 0;
+          for (const auto& [image_pair, two_view_geometry] :
+              EstimateRigTwoViewGeometries(
+                  rig1, rig2, images, cameras, matches, geometry_options_)) {
+            const auto& [image_id1, image_id2] = image_pair;
+            cache_->DeleteInlierMatches(image_id1, image_id2);
+            cache_->WriteTwoViewGeometry(image_id1, image_id2, two_view_geometry);
+            ++num_geoms;
+          }
+
+          VLOG(1) << "[RigVerify] Frame-pair (" << frame_id1 << "," << frame_id2
+                  << ") wrote " << num_geoms << " two-view geometries";
+
+          const size_t f = finished.fetch_add(1, std::memory_order_relaxed) + 1;
+          // Exact same phrasing/format as pairing.cc: second line starts with " in ..."
+          LOG(INFO) << StringPrintf(" in %.3fs (finished %zu/%zu)",
+                                    timer.ElapsedSeconds(), f, total_pairs);
+
+        } catch (const std::exception& e) {
+          LOG(ERROR) << "[RigVerify] Exception in frame-pair (" << frame_id1
+                    << "," << frame_id2 << "): " << e.what();
+          const size_t f = finished.fetch_add(1, std::memory_order_relaxed) + 1;
+          LOG(INFO) << StringPrintf(" in %.3fs (finished %zu/%zu, error)",
+                                    timer.ElapsedSeconds(), f, total_pairs);
+        } catch (...) {
+          LOG(ERROR) << "[RigVerify] Unknown exception in frame-pair ("
+                    << frame_id1 << "," << frame_id2 << ")";
+          const size_t f = finished.fetch_add(1, std::memory_order_relaxed) + 1;
+          LOG(INFO) << StringPrintf(" in %.3fs (finished %zu/%zu, error)",
+                                    timer.ElapsedSeconds(), f, total_pairs);
         }
       });
+
+      ++num_pairs_enqueued;
     }
 
+    LOG(INFO) << "[RigVerify] Enqueued " << num_pairs_enqueued
+              << " frame-pairs; skipped " << num_pairs_below_thresh
+              << " below min_inliers=" << geometry_options_.min_num_inliers
+              << "; threads=" << matching_options_.num_threads;
+
     thread_pool.Wait();
+    LOG(INFO) << "[RigVerify] Completed " << finished.load() << "/" << total_pairs << " tasks.";
+
   }
 
   const bool only_verification_;
