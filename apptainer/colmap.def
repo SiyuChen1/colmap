@@ -44,10 +44,12 @@ Bootstrap: docker
 From: nvidia/cuda:{{ NVIDIA_CUDA_VERSION }}-runtime-ubuntu{{ UBUNTU_VERSION }}
 Stage: final
 
+# It seems not to be very clean since we have to list arguments again.
+# It is also possible to pass the arguments when building with apptainer, see build.sh
 %arguments
     UBUNTU_VERSION=24.04
     NVIDIA_CUDA_VERSION=12.9.1
-    
+
 %post
     set -eux
     export DEBIAN_FRONTEND=noninteractive
