@@ -76,4 +76,9 @@ void WritePoints3DText(const Reconstruction& reconstruction,
 void WritePoints3DText(const Reconstruction& reconstruction,
                        const std::string& path);
 
+void WritePositionCovariancesText(const class Reconstruction& reconstruction,
+                              std::ostream& stream);
+void WritePositionCovariancesText(const class Reconstruction& reconstruction,
+                              const std::string& path);
+
 }  // namespace colmap

@@ -40,7 +40,7 @@ wheel.packages = ["python/pycolmap"]
 cmake.args = [
     "-DCeres_DIR=/usr/local/lib/cmake/Ceres",
     "-DEigen3_DIR=/usr/lib/cmake/eigen3/",
-    "-Dcolmap_DIR=/home/siyu/git_ws/colmap/myinstall-rotation/share/colmap"
+    "-Dcolmap_DIR=/home/siyu/git_ws/colmap/myinstall-rig-verification-timer/share/colmap"
 ]
 
 [tool.cibuildwheel]

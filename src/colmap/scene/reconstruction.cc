@@ -772,6 +772,7 @@ void Reconstruction::WriteText(const std::string& path) const {
   WriteFramesText(*this, JoinPaths(path, "frames.txt"));
   WriteImagesText(*this, JoinPaths(path, "images.txt"));
   WritePoints3DText(*this, JoinPaths(path, "points3D.txt"));
+  WritePositionCovariancesText(*this, JoinPaths(path, "positions_covariance.txt"));
 }
 
 void Reconstruction::WriteBinary(const std::string& path) const {
